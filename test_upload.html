@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test - Transverse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Anonymous Pro', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #000;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            padding: 3rem;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px dashed #ddd;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-button {
+            background: #667eea;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 1rem;
+        }
+
+        .upload-button:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .supported-types {
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        .supported-types h3 {
+            margin-bottom: 0.5rem;
+            color: #1976d2;
+        }
+
+        .type-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .type-tag {
+            background: #2196f3;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+            margin: 1rem 0;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            margin: 1rem 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .translate-section {
+            background: #f0f4ff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .translate-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .translate-controls label {
+            font-weight: 600;
+            color: #333;
+            margin-right: 0.5rem;
+        }
+
+        .language-select {
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+        
+        #translationService {
+            border-color: #667eea;
+            background: linear-gradient(45deg, #f8f9ff, #ffffff);
+        }
+        
+        #translationService option[value="gemini"] {
+            background: #e3f2fd;
+        }
+        
+        #translationService option[value="local_transformer"] {
+            background: #e8f5e8;
+        }
+        
+        .service-status {
+            background: #f0f4ff;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+            color: #555;
+            max-width: 300px;
+        }
+        
+        .service-status.active {
+            background: #e8f5e8;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        
+        .service-status.error {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
+        }        .translate-btn {
+            background: #4caf50;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .translate-btn:hover {
+            background: #45a049;
+        }
+
+
+
+        .pdf-options {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 2px solid #e3f2fd;
+        }
+
+        .pdf-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .page-selection {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .page-input {
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            max-width: 300px;
+        }
+
+        .translate-pdf-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .pdf-translate-btn {
+            background: #ff6b35;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .pdf-translate-btn:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+
+        .preview-btn {
+            background: #2196f3;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .preview-btn:hover {
+            background: #1976d2;
+            transform: translateY(-2px);
+        }
+
+        .pdf-download {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 2px solid #4caf50;
+        }
+
+        .download-info {
+            text-align: center;
+        }
+
+        .download-btn {
+            background: #4caf50;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .download-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .page-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .page-preview h5 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-preview-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 File Upload Test</h1>
+            <p>Upload documents and extract text for processing</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <h2>📤 Upload Document</h2>
+                <p>Drag and drop a file here or click to browse</p>
+                <input type="file" id="fileInput" class="upload-input" accept=".pdf,.xps,.epub,.mobi,.fb2,.cbz,.svg,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tiff,.pnm,.pgm,.pbm,.ppm,.pam,.jxr,.jpx,.jp2,.psd">
+                <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                
+                <div class="supported-types">
+                    <h3>Supported File Types:</h3>
+                    <div class="type-list">
+                        <span class="type-tag">PDF</span>
+                        <span class="type-tag">XPS</span>
+                        <span class="type-tag">EPUB</span>
+                        <span class="type-tag">MOBI</span>
+                        <span class="type-tag">FB2</span>
+                        <span class="type-tag">CBZ</span>
+                        <span class="type-tag">SVG</span>
+                        <span class="type-tag">TXT</span>
+                        <span class="type-tag">JPG</span>
+                        <span class="type-tag">PNG</span>
+                        <span class="type-tag">BMP</span>
+                        <span class="type-tag">GIF</span>
+                        <span class="type-tag">TIFF</span>
+                        <span class="type-tag">PSD</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Section -->
+            <div id="loadingSection" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Processing file...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="results-section hidden">
+                <!-- File Info -->
+                <div class="file-info">
+                    <h3>📋 File Information</h3>
+                    <div class="info-grid" id="fileInfoGrid">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+
+
+                <!-- Translation Section -->
+                <div class="translate-section">
+                    <h3>🌍 Translate PDF</h3>
+                    <div class="translate-controls">
+                        <label for="targetLanguage">Target Language:</label>
+                        <select id="targetLanguage" class="language-select">
+                            <option value="French">French</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="German">German</option>
+                            <option value="Italian">Italian</option>
+                            <option value="Portuguese">Portuguese</option>
+                            <option value="Russian">Russian</option>
+                            <option value="Japanese">Japanese</option>
+                            <option value="Korean">Korean</option>
+                            <option value="zh-Hans">Simplified Chinese</option>
+                            <option value="zh-Hant">Traditional Chinese</option>
+                            <option value="Arabic">Arabic</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="English">English</option>
+                        </select>
+                        
+                        <label for="translationService">Translation Service:</label>
+                        <select id="translationService" class="language-select" onchange="updateServiceStatus()">
+                            <option value="local_transformer">Local Transformer (Free)</option>
+                            <option value="gemini">Google Gemini 2.5 Flash (Fast)</option>
+                        </select>
+                        
+                        <div id="serviceStatus" class="service-status">
+                            <!-- Service status will be shown here -->
+                        </div>
+                        
+
+                    </div>
+                    
+                    <!-- PDF-specific options -->
+                    <div id="pdfOptions" class="pdf-options hidden">
+                        <h4>PDF Translation Options</h4>
+                        <div class="pdf-controls">
+                            <div class="page-selection">
+                                <label for="pageNumbers">Pages to translate (e.g., "1,3,5" or leave empty for all):</label>
+                                <input type="text" id="pageNumbers" class="page-input" placeholder="1,2,3 or leave empty for all pages">
+                            </div>
+                            <div class="translate-pdf-actions">
+                                <button class="translate-btn pdf-translate-btn" id="translatePdfBtn" onclick="translatePdfPages()">
+                                    🚀 Translate PDF Pages
+                                </button>
+                                <button class="preview-btn" id="previewPagesBtn" onclick="previewSelectedPages()">
+                                    👁️ Preview Selected Pages
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+
+                    
+                    <!-- PDF download section -->
+                    <div id="pdfDownload" class="pdf-download hidden">
+                        <h4>📥 Download Translated PDF</h4>
+                        <div class="download-info">
+                            <p id="downloadInfo">Your translated PDF is ready!</p>
+                            <button class="download-btn" id="downloadPdfBtn" onclick="downloadTranslatedPdf()">
+                                💾 Download Translated PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messageContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentFileInfo = null;
+        let translatedPdfDownloadUrl = '';
+
+        // Initialize page by loading available translation services
+        window.onload = function() {
+            loadTranslationServices();
+            updateServiceStatus();
+        };
+
+        // Load available translation services
+        function loadTranslationServices() {
+            fetch('/api/translation-services/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const serviceSelect = document.getElementById('translationService');
+                        serviceSelect.innerHTML = ''; // Clear existing options
+                        
+                        // Define all possible services with their display names
+                        const allServices = {
+                            'local_transformer': {
+                                name: 'Local Transformer',
+                                description: '(Free, Local)',
+                                fallback: true
+                            },
+                            'gemini': {
+                                name: 'Google Gemini 2.5 Flash',
+                                description: '(Fast, API)',
+                                fallback: true
+                            }
+                        };
+                        
+                        // Add available services first
+                        data.available_services.forEach(serviceKey => {
+                            if (allServices[serviceKey]) {
+                                const serviceInfo = data.services_info[serviceKey];
+                                const option = document.createElement('option');
+                                option.value = serviceKey;
+                                option.textContent = `${allServices[serviceKey].name} ${allServices[serviceKey].description}`;
+                                serviceSelect.appendChild(option);
+                                allServices[serviceKey].fallback = false; // Mark as added
+                            }
+                        });
+                        
+                        // Add unavailable services with indication
+                        Object.keys(allServices).forEach(serviceKey => {
+                            if (allServices[serviceKey].fallback) {
+                                const option = document.createElement('option');
+                                option.value = serviceKey;
+                                option.textContent = `${allServices[serviceKey].name} ${allServices[serviceKey].description} - Not Available`;
+                                option.disabled = true;
+                                option.style.color = '#999';
+                                serviceSelect.appendChild(option);
+                            }
+                        });
+                        
+                        // Set current service as selected
+                        if (data.current_service && data.available_services.includes(data.current_service)) {
+                            serviceSelect.value = data.current_service;
+                        } else if (data.available_services.length > 0) {
+                            serviceSelect.value = data.available_services[0];
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load translation services:', error);
+                    // Keep default options if API fails - they're already in the HTML
+                    showMessage('Using default translation options (API check failed)', 'warning');
+                });
+        }
+
+        // Set translation service
+        function setTranslationService(serviceName) {
+            // Check if the service is disabled (not available)
+            const serviceSelect = document.getElementById('translationService');
+            const selectedOption = serviceSelect.querySelector(`option[value="${serviceName}"]`);
+            
+            if (selectedOption && selectedOption.disabled) {
+                showMessage(`${serviceName} service is not available. Please check dependencies and configuration.`, 'error');
+                return Promise.resolve(false);
+            }
+            
+            return fetch('/api/translation-services/set/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    service_name: serviceName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(`Translation service set to: ${serviceName}`, 'success');
+                    updateServiceStatus();
+                    return true;
+                } else {
+                    showMessage(`Failed to set service: ${data.error}`, 'error');
+                    return false;
+                }
+            })
+            .catch(error => {
+                showMessage(`Error setting service: ${error.message}`, 'error');
+                return false;
+            });
+        }
+
+        // Update service status indicator
+        function updateServiceStatus() {
+            const serviceSelect = document.getElementById('translationService');
+            const statusDiv = document.getElementById('serviceStatus');
+            const selectedService = serviceSelect.value;
+            
+            if (selectedService === 'gemini') {
+                statusDiv.textContent = '⚡ Fast API-based translation';
+                statusDiv.className = 'service-status active';
+            } else if (selectedService === 'local_transformer') {
+                statusDiv.textContent = '🧠 Local AI model (may take time to load)';
+                statusDiv.className = 'service-status active';
+            } else {
+                statusDiv.textContent = 'Select a translation service';
+                statusDiv.className = 'service-status';
+            }
+        }
+
+        // File input change handler
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        // Drag and drop handlers
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            showMessage(`Selected file: ${file.name} (${formatFileSize(file.size)})`, 'success');
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show loading
+            showLoading();
+            hideResults();
+            clearMessages();
+
+            fetch('/api/upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    displayResults(data);
+                    currentFileInfo = data.file_info;
+                    
+                    // Show PDF options if it's a PDF file
+                    const pdfOptions = document.getElementById('pdfOptions');
+                    if (data.file_info.extension.toLowerCase() === '.pdf') {
+                        pdfOptions.classList.remove('hidden');
+                    } else {
+                        pdfOptions.classList.add('hidden');
+                    }
+                    
+                    if (data.extraction_error) {
+                        showMessage(`Warning: ${data.extraction_error}`, 'error');
+                    } else {
+                        showMessage('File processed successfully!', 'success');
+                    }
+                } else {
+                    showMessage(`Error: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showMessage(`Upload failed: ${error.message}`, 'error');
+                console.error('Upload error:', error);
+            });
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const fileInfoGrid = document.getElementById('fileInfoGrid');
+
+            // Display file info
+            fileInfoGrid.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">File Name</div>
+                    <div class="info-value">${data.file_info.original_name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">File Size</div>
+                    <div class="info-value">${formatFileSize(data.file_info.size)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">File Type</div>
+                    <div class="info-value">${data.file_info.extension.toUpperCase()}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Pages/Sections</div>
+                    <div class="info-value">${data.file_info.pages}</div>
+                </div>
+            `;
+
+            resultsSection.classList.remove('hidden');
+        }
+
+
+
+        function previewSelectedPages() {
+            if (!currentFileInfo || currentFileInfo.extension.toLowerCase() !== '.pdf') {
+                showMessage('Please upload a PDF file first', 'error');
+                return;
+            }
+
+            const pageNumbers = document.getElementById('pageNumbers').value.trim();
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showMessage('Please upload a file first', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            if (pageNumbers) {
+                formData.append('pages', pageNumbers);
+            }
+
+            const previewBtn = document.getElementById('previewPagesBtn');
+            previewBtn.disabled = true;
+            previewBtn.textContent = 'Loading Preview...';
+
+            fetch('/api/extract-pages/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                previewBtn.disabled = false;
+                previewBtn.textContent = '👁️ Preview Selected Pages';
+
+                if (data.success) {
+                    displayPagePreview(data.pages);
+                    showMessage(`Preview loaded: ${data.selected_pages} out of ${data.total_pages} pages`, 'success');
+                } else {
+                    showMessage(`Preview failed: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                previewBtn.disabled = false;
+                previewBtn.textContent = '👁️ Preview Selected Pages';
+                showMessage(`Preview failed: ${error.message}`, 'error');
+            });
+        }
+
+        function displayPagePreview(pages) {
+            let previewContainer = document.getElementById('pagePreviewContainer');
+            if (!previewContainer) {
+                previewContainer = document.createElement('div');
+                previewContainer.id = 'pagePreviewContainer';
+                previewContainer.className = 'page-preview';
+                document.querySelector('.pdf-options').appendChild(previewContainer);
+            }
+
+            let previewHtml = '<h5>📖 Page Preview:</h5>';
+            pages.forEach(page => {
+                const previewText = page.text.substring(0, 200) + (page.text.length > 200 ? '...' : '');
+                previewHtml += `
+                    <div class="page-preview-text">
+                        <strong>Page ${page.page_number}:</strong><br>
+                        ${previewText}
+                    </div>
+                    <hr style="margin: 0.5rem 0;">
+                `;
+            });
+
+            previewContainer.innerHTML = previewHtml;
+        }
+
+        function translatePdfPages() {
+            if (!currentFileInfo || currentFileInfo.extension.toLowerCase() !== '.pdf') {
+                showMessage('Please upload a PDF file first', 'error');
+                return;
+            }
+
+            const pageNumbers = document.getElementById('pageNumbers').value.trim();
+            const targetLanguage = document.getElementById('targetLanguage').value;
+            const selectedService = document.getElementById('translationService').value;
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showMessage('Please upload a file first', 'error');
+                return;
+            }
+
+            // Start timer
+            const startTime = performance.now();
+
+            const translateBtn = document.getElementById('translatePdfBtn');
+            translateBtn.disabled = true;
+            translateBtn.textContent = '🔄 Translating PDF...';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('target_language', targetLanguage);
+            formData.append('service_name', selectedService);  // Explicitly pass the service
+            if (pageNumbers) {
+                formData.append('pages', pageNumbers);
+            }
+
+            showMessage(`Starting PDF translation with ${selectedService}... This may take a few minutes depending on the number of pages.`, 'success');
+
+            fetch('/api/translate-pdf/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                translateBtn.disabled = false;
+                translateBtn.textContent = '🚀 Translate PDF Pages';
+                
+                // Calculate translation time
+                const endTime = performance.now();
+                const translationTime = ((endTime - startTime) / 1000).toFixed(2);
+
+                if (data && data.success) {
+                    translatedPdfDownloadUrl = data.download_url;
+                    
+                    // Show download section
+                    const downloadSection = document.getElementById('pdfDownload');
+                    const downloadInfo = document.getElementById('downloadInfo');
+                    downloadInfo.textContent = `Successfully translated ${data.translated_pages} pages to ${targetLanguage} using ${selectedService} in ${translationTime}s!`;
+                    downloadSection.classList.remove('hidden');
+                    
+                    showMessage(`PDF translation completed! ${data.translated_pages} pages translated to ${targetLanguage} using ${selectedService} in ${translationTime}s.`, 'success');
+                } else if (data) {
+                    showMessage(`PDF translation failed: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                translateBtn.disabled = false;
+                translateBtn.textContent = '🚀 Translate PDF Pages';
+                showMessage(`PDF translation failed: ${error.message}`, 'error');
+            });
+        }
+
+        function downloadTranslatedPdf() {
+            if (!translatedPdfDownloadUrl) {
+                showMessage('No translated PDF available for download', 'error');
+                return;
+            }
+
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = translatedPdfDownloadUrl;
+            link.download = 'translated_document.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showMessage('Download started!', 'success');
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSection').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSection').classList.add('hidden');
+        }
+
+        function showResults() {
+            document.getElementById('resultsSection').classList.remove('hidden');
+        }
+
+        function hideResults() {
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('pdfDownload').classList.add('hidden');
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            container.appendChild(messageDiv);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        function clearMessages() {
+            document.getElementById('messageContainer').innerHTML = '';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function countWords(text) {
+            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+        }
+    </script>
+</body>
+</html>

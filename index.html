@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transverse</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="icon/web/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@primer/css@latest/dist/primer.css">
+</head>
+<body>
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section id="home" class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title">Transverse</h1>
+                    <p class="hero-description">
+                        100% Open Source and Free Translator for Everyone.
+                    </p>
+                    <p class="hero-description">
+                        Try it yourself from below ;>
+                </div>
+            </div>
+        </section>
+
+        <!-- Translator Section -->
+        <section class="translator-section">
+            <div class="container">
+                <div class="translator-container">
+                    <!-- Language Selection and Controls -->
+                    <div class="language-controls">
+                        <div class="file-upload">
+                            <input type="file" id="fileInput" accept=".pdf,.xps,.epub,.mobi,.fb2,.cbz,.svg,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tiff,.pnm,.pgm,.pbm,.ppm,.pam,.jxr,.jpx,.jp2,.psd" hidden>
+                            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                                <svg class="octicon octicon-upload" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/>
+                                    <path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/>
+                                </svg>
+                                Upload File
+                            </button>
+                        </div>
+                        
+                        <div class="language-selector-group">
+                            <select class="language-dropdown" id="sourceLanguage">
+                                <option value="auto">Auto-detect</option>
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="ru">Russian</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh-Hant">Traditional Chinese</option>
+                                <option value="zh-Hans">Simplified Chinese</option>
+                                <option value="ar">Arabic</option>
+                                <option value="hi">Hindi</option>
+                            </select>
+                            
+                            <button class="switch-language" id="switchLanguages">
+                                <svg class="octicon octicon-arrow-switch" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 0 1-1.06-1.06L11.44 5.5H6.75a.75.75 0 0 1 0-1.5h4.69l-.72-.72a.75.75 0 0 1 1.06-1.06l2 2Z"/>
+                                    <path d="M2.22 11.78a.75.75 0 0 1 0-1.06l2-2a.75.75 0 0 1 1.06 1.06L4.56 10.5h4.69a.75.75 0 0 1 0 1.5H4.56l.72.72a.75.75 0 0 1-1.06 1.06l-2-2Z"/>
+                                </svg>
+                            </button>
+                            
+                            <select class="language-dropdown" id="targetLanguage">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="ru">Russian</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh-Hant">Traditional Chinese</option>
+                                <option value="zh-Hans">Simplified Chinese</option>
+                                <option value="ar">Arabic</option>
+                                <option value="hi">Hindi</option>
+                            </select>
+                        </div>
+                        
+                        <div class="spacer"></div>
+                    </div>
+
+                    <!-- Translation Interface -->
+                    <div class="translation-interface">
+                        <div class="input-section">
+                            <textarea 
+                                class="text-input" 
+                                id="inputText" 
+                                placeholder="Enter text to translate..."
+                                maxlength="5000"
+                            ></textarea>
+                            <div class="character-count">
+                                <span id="charCount">0</span>/5000
+                            </div>
+                        </div>
+                        
+                        <div class="output-section">
+                            <textarea 
+                                class="text-output" 
+                                id="outputText" 
+                                placeholder="Translation will appear here..."
+                                readonly
+                                disabled
+                            ></textarea>
+                            <div class="output-actions">
+                                <button class="action-btn" id="copyBtn" title="Copy translation">
+                                    <svg class="octicon octicon-copy" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/>
+                                        <path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Translate Button -->
+                    <button class="translate-btn" id="translateBtn">
+                        <span class="btn-text">Translate</span>
+                        <div class="loading-spinner" id="loadingSpinner"></div>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- File Upload Loading Screen -->
+        <div class="file-upload-loading" id="fileUploadLoading" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-spinner-large"></div>
+                <h2 class="loading-title">Processing Your File</h2>
+                <p class="loading-subtitle">Please wait while we extract and prepare your content...</p>
+                <div class="loading-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="uploadProgressFill"></div>
+                    </div>
+                    <p class="progress-text" id="uploadProgressText">Initializing...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Translation Results -->
+        <div class="file-translation-results" id="fileTranslationResults" style="display: none;">
+            <div class="translation-page-container">
+                <!-- Left Panel: Page Previews -->
+                <div class="left-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">📄 File Pages</h3>
+                        <div class="page-controls">
+                            <button class="page-control-btn" id="selectAllPages">Select All</button>
+                            <button class="page-control-btn" id="deselectAllPages">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <div class="page-input-section">
+                        <label for="selectedPagesInput">Pages to translate:</label>
+                        <input type="text" id="selectedPagesInput" placeholder="e.g., 1,3,5-8" class="pages-input">
+                        <small class="input-help">Use commas and dashes (e.g., 1,3,5-8)</small>
+                    </div>
+
+                    <div class="pages-info">
+                        <span id="selectedPagesInfo">No pages selected</span>
+                        <span id="totalPagesInfo">Total: 0 pages</span>
+                    </div>
+
+                    <div class="pages-preview-container" id="pagesPreviewContainer">
+                        <!-- Page previews will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <!-- Right Panel: Translation Controls -->
+                <div class="right-panel">
+                    <div class="translation-settings">
+                        <h3 class="panel-title">🌍 Translation Settings</h3>
+
+                        <div class="setting-group">
+                            <label for="fileTargetLanguage">Target Language:</label>
+                            <select id="fileTargetLanguage" class="language-dropdown">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="ru">Russian</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh-Hans">Simplified Chinese</option>
+                                <option value="zh-Hant">Traditional Chinese</option>
+                                <option value="ar">Arabic</option>
+                                <option value="hi">Hindi</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="fileTranslationService">Translation Service:</label>
+                            <select id="fileTranslationService" class="language-dropdown">
+                                <option value="local_transformer">Local Transformer (Free)</option>
+                                <option value="gemini">Google Gemini 2.5 Flash (Fast)</option>
+                            </select>
+                        </div>
+
+                        <div class="time-estimate">
+                            <div class="estimate-label">Estimated Time:</div>
+                            <div class="estimate-value" id="timeEstimate">--</div>
+                            <small class="estimate-note">About 4-5 seconds per page</small>
+                        </div>
+
+                        <div class="translate-section">
+                            <button class="translate-file-btn" id="translateFileBtn">
+                                <span class="btn-text">Translate Selected Pages</span>
+                                <div class="loading-spinner-small"></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="translation-footer">
+                <button class="back-to-main-btn" onclick="hideFileTranslation()">
+                    ← Back to Main
+                </button>
+            </div>
+
+            <!-- Translation Results (Hidden by default) -->
+            <div class="file-translation-output" id="fileTranslationOutput" style="display: none;">
+                <div class="results-header">
+                    <h2 class="section-title">📤 Translation Results</h2>
+                    <button class="close-results-btn" onclick="hideFileTranslationOutput()">×</button>
+                </div>
+                <div class="translation-result-content" id="translationResultContent">
+                    <!-- Translation result will be inserted here -->
+                </div>
+                <div class="translation-actions">
+                    <button class="download-translation-btn" id="downloadTranslationBtn">
+                        💾 Download Translation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drag and Drop Overlay -->
+        <div class="drag-drop-overlay" id="dragDropOverlay">
+            <div class="drag-drop-content">
+                <svg class="drag-drop-icon" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                <h3 class="drag-drop-title">Upload File</h3>
+                <p class="drag-drop-formats">Drop your file here to upload</p>
+                <p class="drag-drop-formats-small">Supports: PDF, XPS, EPUB, MOBI, FB2, CBZ, SVG, TXT, JPG, PNG, BMP, GIF, TIFF, PSD & more</p>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <section id="features" class="features-section">
+            <div class="container">
+                <h2 class="section-title">Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🚀</div>
+                        <h3>Instant Translation</h3>
+                        <p>Get translations in real-time with our advanced AI technology</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📄</div>
+                        <h3>File Support</h3>
+                        <p>Upload and translate documents in various formats</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌍</div>
+                        <h3>100+ Languages</h3>
+                        <p>Support for over 100 languages worldwide</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Secure & Private</h3>
+                        <p>Your data is encrypted and never stored</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="faq-section">
+            <div class="container">
+                <h2 class="section-title">Frequently Asked Questions</h2>
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            How accurate are the translations?
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            Our AI-powered translation engine provides highly accurate translations with context awareness, achieving over 95% accuracy for major language pairs.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What file formats are supported?
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            We support PDF, XPS, EPUB, MOBI, FB2, CBZ, SVG, TXT documents and JPG, PNG, BMP, GIF, TIFF, PNM, PGM, PBM, PPM, PAM, JXR, JPX/JP2, PSD image formats for translation.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Is my data secure?
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            Yes, all data is encrypted in transit and we don't store your translated content on our servers.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <script src="components.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
