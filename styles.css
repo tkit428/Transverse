@@ -1766,6 +1766,56 @@ html, body {
     font-size: 1.2rem;
 }
 
+/* Download Section in File Translation Page */
+.download-section {
+    margin-top: 1.5rem;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.success-message h3 {
+    margin: 0 0 0.5rem 0;
+    font-family: 'Doto', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+}
+
+.success-message p {
+    margin: 0;
+    font-family: 'Anonymous Pro', monospace;
+    font-size: 0.9rem;
+    color: white;
+    opacity: 0.9;
+}
+
+.success-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.service-info {
+    font-family: 'Anonymous Pro', monospace;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #28a745;
+    padding: 0.5rem 0;
+    display: block;
+}
+
 /* Right Panel */
 .right-panel {
     flex: 1;

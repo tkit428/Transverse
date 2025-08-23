@@ -981,7 +981,7 @@ function parsePageInput(event) {
                     }
                 }
             }
-        } else {
+                } else {
             // Handle individual numbers
             const pageNum = parseInt(trimmed);
             if (!isNaN(pageNum) && !newSelectedPages.includes(pageNum)) {
@@ -1008,7 +1008,7 @@ function updateSelectedPagesInfo() {
             infoElement.textContent = 'No pages selected';
         } else if (selectedPages.length === 1) {
             infoElement.textContent = '1 page selected';
-    } else {
+        } else {
             infoElement.textContent = `${selectedPages.length} pages selected`;
         }
     }
@@ -1035,7 +1035,7 @@ function updateTimeEstimate(selectedPages) {
 
     if (totalSeconds < 60) {
         estimateElement.textContent = `${Math.round(totalSeconds)}s`;
-                } else {
+        } else {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = Math.round(totalSeconds % 60);
         estimateElement.textContent = `${minutes}m ${seconds}s`;
@@ -1052,6 +1052,9 @@ function hideFileTranslation() {
         translationOutput.style.display = 'none';
     }
 
+    // Hide download section
+    hideDownloadSection();
+
     // Hide results screen
     resultsScreen.classList.remove('active');
     setTimeout(() => {
@@ -1059,7 +1062,7 @@ function hideFileTranslation() {
     }, 300);
 
     // Reset variables
-selectedPages = [];
+    selectedPages = [];
 extractedTextContent = '';
 currentFileInfo = null;
 translatedPdfDownloadUrl = '';
@@ -1151,9 +1154,10 @@ function translateFileContent() {
                         fullResponse: data
                     });
 
-                    // Show download section with success message
-                    showFileTranslationSuccess(targetLanguage, 'Google Gemini 2.5 Flash', translationTime);
-                    showNotification(`Successfully translated ${data.translated_pages || selectedPages.length} pages using Google Gemini 2.5 Flash in ${translationTime}s!`, 'success');
+                    // Show download section below translate button
+                    const translatedPages = data.translated_pages || selectedPages.length;
+                    showDownloadSection(targetLanguage, 'Google Gemini 2.5 Flash', translationTime, translatedPages);
+                    showNotification(`Successfully translated ${translatedPages} pages using Google Gemini 2.5 Flash in ${translationTime}s!`, 'success');
                 } else if (data) {
                     console.error('Translation failed with response:', data);
                     showNotification(`Translation failed: ${data.error}`, 'error');
@@ -1161,7 +1165,7 @@ function translateFileContent() {
                     console.error('Translation failed with empty response');
                     showNotification('Translation failed: Empty response from server', 'error');
                 }
-    } catch (error) {
+            } catch (error) {
                 console.error('JSON parsing error:', error);
                 console.error('Response text:', xhr.responseText);
                 showNotification(`Translation failed: Invalid response format - ${xhr.responseText}`, 'error');
@@ -1216,12 +1220,35 @@ function getSelectedPagesText() {
     return selectedTextParts.join('\n\n');
 }
 
-// Show file translation success message
+// Show download section below translate button
+function showDownloadSection(targetLanguage, service, time, translatedPages) {
+    const downloadSection = document.getElementById('downloadSection');
+    const downloadMessage = document.getElementById('downloadMessage');
+
+    if (downloadSection && downloadMessage) {
+        // Update the success message with translation details
+        downloadMessage.textContent = `Successfully translated ${translatedPages} pages to ${targetLanguage} using ${service} in ${time}s`;
+
+        // Show the download section with smooth animation
+        downloadSection.style.display = 'block';
+        downloadSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+// Hide download section
+function hideDownloadSection() {
+    const downloadSection = document.getElementById('downloadSection');
+    if (downloadSection) {
+        downloadSection.style.display = 'none';
+    }
+}
+
+// Show file translation success message (legacy function - kept for compatibility)
 function showFileTranslationSuccess(targetLanguage, service, time) {
     const translationOutput = document.getElementById('fileTranslationOutput');
 
     if (translationOutput) {
-                        // Create success message HTML
+        // Create success message HTML
         const successHTML = `
             <div class="download-success">
                 <div class="success-icon-small">✅</div>
