@@ -11,17 +11,15 @@ from typing import Dict, List, Optional
 
 # Import the base class and services
 from . import BaseTranslationService
-from .local_transformer.service import local_transformer_service
-from .google_gemini.service import gemini_service
+from .google_gemini import gemini_service
 
 class TranslationServiceManager:
     def __init__(self):
         self.services: Dict[str, BaseTranslationService] = {
-            'local_transformer': local_transformer_service,
             'gemini': gemini_service,
         }
-        self.default_service = 'gemini'  # Default to Gemini API
-        self.current_service = None
+        self.default_service = 'gemini'  # Only Gemini API available
+        self.current_service = 'gemini'  # Force Gemini usage
         
     def get_available_services(self) -> List[str]:
         """Get list of available services."""
@@ -68,46 +66,36 @@ class TranslationServiceManager:
         return True
     
     def get_current_service(self) -> Optional[BaseTranslationService]:
-        """Get the currently active service."""
+        """Get the currently active service (always Gemini)."""
         if self.current_service and self.current_service in self.services:
-            return self.services[self.current_service]
-        
-        # Try to use default service
-        if self.default_service in self.services and self.services[self.default_service].is_available():
-            self.current_service = self.default_service
-            return self.services[self.default_service]
-        
-        # Try to use any available service
-        available = self.get_available_services()
-        if available:
-            self.current_service = available[0]
-            print(f"Auto-selected translation service: {self.current_service}")
-            return self.services[self.current_service]
-        
+            service = self.services[self.current_service]
+            if service.is_available():
+                return service
+
+        # Force Gemini usage
+        if 'gemini' in self.services and self.services['gemini'].is_available():
+            self.current_service = 'gemini'
+            return self.services['gemini']
+
         return None
     
     def translate(self, text: str, target_language: str, service_name: Optional[str] = None) -> str:
         """
-        Translate text using the specified or current service.
-        
+        Translate text using Gemini API (only available service).
+
         Args:
             text (str): Text to translate
             target_language (str): Target language
-            service_name (str, optional): Specific service to use
-            
+            service_name (str, optional): Ignored - always uses Gemini
+
         Returns:
             str: Translated text
         """
-        if service_name:
-            if service_name not in self.services:
-                return f"Translation failed: Unknown service '{service_name}'"
-            service = self.services[service_name]
-        else:
-            service = self.get_current_service()
-            
-        if not service:
-            return "Translation failed: No translation service available"
-        
+        # Always use Gemini
+        service = self.services.get('gemini')
+        if not service or not service.is_available():
+            return "Translation failed: Gemini API not available"
+
         try:
             return service.translate(text, target_language)
         except Exception as e:
@@ -115,39 +103,35 @@ class TranslationServiceManager:
     
     def load_service(self, service_name: Optional[str] = None) -> bool:
         """
-        Load a specific service or the current service.
-        
+        Load Gemini service (only available service).
+
         Args:
-            service_name (str, optional): Service to load
-            
+            service_name (str, optional): Ignored - always loads Gemini
+
         Returns:
             bool: True if service loaded successfully
         """
-        if service_name:
-            if service_name not in self.services:
-                return False
-            service = self.services[service_name]
-        else:
-            service = self.get_current_service()
-            
-        if not service:
+        # Always load Gemini
+        service = self.services.get('gemini')
+        if not service or not service.is_available():
+            print("Gemini API not available - check API key")
             return False
-            
+
         try:
             service.load_service()
             return True
         except Exception as e:
-            print(f"Failed to load service: {str(e)}")
+            print(f"Failed to load Gemini service: {str(e)}")
             return False
 
 # Create global instance
 translation_manager = TranslationServiceManager()
 
-# Backwards compatibility - provide the old interface
+# Backwards compatibility - provide the old interface (always uses Gemini)
 def load_model():
-    """Load the current translation model (backwards compatibility)."""
+    """Load the Gemini translation service (backwards compatibility)."""
     return translation_manager.load_service()
 
 def translate_text(text: str, target_language: str) -> str:
-    """Translate text using the current service (backwards compatibility)."""
+    """Translate text using Gemini API (backwards compatibility)."""
     return translation_manager.translate(text, target_language)

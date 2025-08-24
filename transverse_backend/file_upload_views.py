@@ -13,6 +13,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from pathlib import Path
 from .file_extractor import file_extractor
+from django.http import JsonResponse
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -333,6 +334,52 @@ def get_supported_types(request):
             'other': ['.xps', '.svg', '.hwp']
         }
     })
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def translate_text(request):
+    """Translate text using the current translation service."""
+    try:
+        # Get JSON data from request
+        data = json.loads(request.body)
+        text = data.get('text', '').strip()
+        target_language = data.get('target_language', 'English')
+
+        if not text:
+            return JsonResponse({
+                'success': False,
+                'error': 'No text provided for translation'
+            }, status=400)
+
+        # Import and use the translation service
+        import sys
+        from pathlib import Path
+        # Add the translator services path to Python path
+        translator_path = Path(__file__).parent.parent / "translator"
+        if str(translator_path) not in sys.path:
+            sys.path.insert(0, str(translator_path))
+        from services.manager import translate_text as translate_func
+
+        # Perform translation
+        translated_text = translate_func(text, target_language)
+
+        return JsonResponse({
+            'success': True,
+            'translated_text': translated_text,
+            'original_text': text,
+            'target_language': target_language
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON in request body'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Translation error: {str(e)}'
+        }, status=500)
 
 # Translation Service Management Endpoints
 
