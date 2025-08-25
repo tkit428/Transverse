@@ -579,6 +579,17 @@ let selectedPages = [];
 let currentFileData = null;
 let originalUploadedFile = null; // Store original file for translation
 
+// Translation progress tracking
+let translationStartTime = null;
+let lastPageStartTime = null;
+let translationProgress = {
+    currentPage: 0,
+    totalPages: 0,
+    pagesCompleted: 0,
+    lastPageDuration: 0,
+    totalTime: 0
+};
+
 // File upload handler
 function handleFileUpload(file) {
     // Store the original file for later use during translation
@@ -818,6 +829,8 @@ function showFileTranslationResults(data) {
     resultsScreen.style.display = 'block';
     setTimeout(() => {
         resultsScreen.classList.add('active');
+        // Disable page scroll
+        document.body.classList.add('file-translation-active');
     }, 10);
 
     console.log('File translation page shown, original file available:', !!originalUploadedFile);
@@ -841,22 +854,186 @@ function generatePagePreviews(data) {
         });
     }
 
-    // Generate HTML for page previews as icons in a grid
+    // Generate HTML for page previews with actual PDF page images
     previewContainer.innerHTML = pagePreviews.map(preview => `
         <div class="page-icon ${selectedPages.includes(preview.pageNumber) ? 'selected' : ''}" data-page="${preview.pageNumber}">
-            <div class="page-icon-content">
-                ${preview.isImage ?
-                    '<div class="page-icon-image">🖼️</div>' :
-                    '<div class="page-icon-document">📄</div>'
-                }
-                <div class="page-number">${preview.pageNumber}</div>
-            </div>
-            <div class="page-checkmark ${selectedPages.includes(preview.pageNumber) ? 'visible' : ''}">✓</div>
+            ${preview.isPdf ? 
+                `<canvas class="page-icon-image" id="page-canvas-${preview.pageNumber}" width="120" height="160"></canvas>` :
+                preview.isImage ?
+                    `<img src="${URL.createObjectURL(originalUploadedFile)}" class="page-icon-image" alt="Page ${preview.pageNumber}">` :
+                    `<div class="page-icon-document">📄</div>`
+            }
+            <div class="page-number">${preview.pageNumber}</div>
+
         </div>
     `).join('');
 
+    // Generate PDF page previews if it's a PDF file
+    if (data.file_info.extension.toLowerCase() === '.pdf' && originalUploadedFile) {
+        generatePdfPagePreviews(originalUploadedFile, totalPages);
+    }
+
     // Update total pages info
     updateSelectedPagesInfo();
+}
+
+// Show translation progress bar
+function showTranslationProgress() {
+    const progressBar = document.getElementById('translationProgress');
+    if (progressBar) {
+        progressBar.style.display = 'block';
+        progressBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+// Hide translation progress bar
+function hideTranslationProgress() {
+    const progressBar = document.getElementById('translationProgress');
+    if (progressBar) {
+        progressBar.style.display = 'none';
+    }
+}
+
+// Update translation progress
+function updateTranslationProgress(currentPage, totalPages, isPageComplete = false) {
+    if (isPageComplete && lastPageStartTime) {
+        const pageDuration = (Date.now() - lastPageStartTime) / 1000;
+        translationProgress.lastPageDuration = pageDuration;
+        translationProgress.pagesCompleted++;
+        
+        // Update last page time display
+        const lastPageTimeElement = document.getElementById('lastPageTime');
+        if (lastPageTimeElement) {
+            lastPageTimeElement.textContent = `${pageDuration.toFixed(1)}s`;
+        }
+        
+        // Update last page duration in details
+        const lastPageDurationElement = document.getElementById('lastPageDuration');
+        if (lastPageDurationElement) {
+            lastPageDurationElement.textContent = `${pageDuration.toFixed(1)}s`;
+        }
+    }
+    
+    translationProgress.currentPage = currentPage;
+    translationProgress.totalPages = totalPages;
+    
+    // Update progress bar
+    const progressBarFill = document.getElementById('translationProgressBar');
+    if (progressBarFill) {
+        const progressPercent = (translationProgress.pagesCompleted / totalPages) * 100;
+        progressBarFill.style.width = `${progressPercent}%`;
+    }
+    
+    // Update progress details
+    const currentPageInfoElement = document.getElementById('currentPageInfo');
+    if (currentPageInfoElement) {
+        currentPageInfoElement.textContent = `Page ${currentPage} of ${totalPages}`;
+    }
+    
+    const currentPageNumberElement = document.getElementById('currentPageNumber');
+    if (currentPageNumberElement) {
+        currentPageNumberElement.textContent = currentPage;
+    }
+    
+    const pagesCompletedElement = document.getElementById('pagesCompleted');
+    if (pagesCompletedElement) {
+        pagesCompletedElement.textContent = translationProgress.pagesCompleted;
+    }
+    
+    // Update total time
+    if (translationStartTime) {
+        const totalTime = (Date.now() - translationStartTime) / 1000;
+        translationProgress.totalTime = totalTime;
+        
+        const totalTimeElement = document.getElementById('totalTranslationTime');
+        if (totalTimeElement) {
+            totalTimeElement.textContent = `${totalTime.toFixed(1)}s`;
+        }
+    }
+}
+
+// Cancel translation
+function cancelTranslation() {
+    // Reset button to translate
+    const translateBtn = document.getElementById('translateFileBtn');
+    translateBtn.classList.remove('loading');
+    translateBtn.textContent = 'Translate Selected Pages';
+    translateBtn.onclick = translateFileContent;
+    
+    // Hide progress bar
+    hideTranslationProgress();
+    
+    // Show notification
+    showNotification('Translation cancelled', 'info');
+    
+    // Note: progressInterval will be cleared in xhr.onload/onerror/ontimeout
+}
+
+// Start translation progress tracking
+function startTranslationProgress(totalPages) {
+    translationStartTime = Date.now();
+    lastPageStartTime = Date.now();
+    translationProgress = {
+        currentPage: 1,
+        totalPages: totalPages,
+        pagesCompleted: 0,
+        lastPageDuration: 0,
+        totalTime: 0
+    };
+    
+    showTranslationProgress();
+    updateTranslationProgress(1, totalPages);
+}
+
+// Generate actual PDF page previews using PDF.js
+function generatePdfPagePreviews(pdfFile, totalPages) {
+    // Configure PDF.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        renderPdfPages(pdfFile, totalPages);
+    } else {
+        console.error('PDF.js library not loaded');
+    }
+}
+
+// Render PDF pages to canvas
+async function renderPdfPages(pdfFile, totalPages) {
+    try {
+        const arrayBuffer = await pdfFile.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        // Render all pages for preview
+        const pagesToRender = totalPages;
+        
+        for (let pageNum = 1; pageNum <= pagesToRender; pageNum++) {
+            try {
+                const page = await pdf.getPage(pageNum);
+                const canvas = document.getElementById(`page-canvas-${pageNum}`);
+                
+                if (canvas) {
+                    const context = canvas.getContext('2d');
+                    const viewport = page.getViewport({ scale: 0.3 }); // Scale down for preview
+                    
+                    // Set canvas dimensions
+                    canvas.width = 120;
+                    canvas.height = 160;
+                    
+                    // Render the page
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    
+                    await page.render(renderContext).promise;
+                    console.log(`Page ${pageNum} preview generated`);
+                }
+            } catch (pageError) {
+                console.warn(`Failed to render page ${pageNum}:`, pageError);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to generate PDF previews:', error);
+    }
 }
 
 // Setup page control event listeners
@@ -1035,7 +1212,7 @@ function updateTimeEstimate(selectedPages) {
 
     if (totalSeconds < 60) {
         estimateElement.textContent = `${Math.round(totalSeconds)}s`;
-    } else {
+                } else {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = Math.round(totalSeconds % 60);
         estimateElement.textContent = `${minutes}m ${seconds}s`;
@@ -1059,15 +1236,17 @@ function hideFileTranslation() {
     resultsScreen.classList.remove('active');
     setTimeout(() => {
         resultsScreen.style.display = 'none';
+        // Re-enable page scroll
+        document.body.classList.remove('file-translation-active');
     }, 300);
 
     // Reset variables
     selectedPages = [];
-extractedTextContent = '';
-currentFileInfo = null;
-translatedPdfDownloadUrl = '';
-currentFileData = null;
-originalUploadedFile = null;
+    extractedTextContent = '';
+    currentFileInfo = null;
+    translatedPdfDownloadUrl = '';
+    currentFileData = null;
+    originalUploadedFile = null;
 }
 
 // Hide translation output
@@ -1093,8 +1272,10 @@ function translateFileContent() {
     const translateBtn = document.getElementById('translateFileBtn');
     const targetLanguage = document.getElementById('fileTargetLanguage').value;
 
-    // Show loading state
+    // Show loading state and change button to cancel
     translateBtn.classList.add('loading');
+    translateBtn.textContent = 'Cancel Translation';
+    translateBtn.onclick = cancelTranslation;
 
     // Start timer
     const startTime = performance.now();
@@ -1129,12 +1310,91 @@ function translateFileContent() {
 
     showNotification(`Starting file translation with Google Gemini 2.5 Flash... This may take a few minutes depending on the number of pages.`, 'success');
 
+    // Start progress tracking
+    startTranslationProgress(selectedPages.length);
+    
+    // Set up progress monitoring interval
+    const progressInterval = setInterval(() => {
+        // Check if translation is still in progress
+        if (xhr.readyState < 4) {
+            // Estimate progress based on elapsed time
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const estimatedPagesPerSecond = 0.2; // Rough estimate: 5 seconds per page
+            const estimatedPagesCompleted = Math.min(Math.floor(elapsedTime * estimatedPagesPerSecond), selectedPages.length);
+            
+            if (estimatedPagesCompleted > translationProgress.pagesCompleted) {
+                updateTranslationProgress(estimatedPagesCompleted, selectedPages.length, true);
+            }
+        } else {
+            clearInterval(progressInterval);
+        }
+    }, 2000); // Check every 2 seconds
+
     // Use XMLHttpRequest for translation (like test_upload.html)
     const xhr = new XMLHttpRequest();
 
+    // Add progress tracking
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 3) { // Processing
+            // Update progress for current page
+            const currentPage = Math.min(Math.floor((xhr.responseText.length / 1000) + 1), selectedPages.length);
+            updateTranslationProgress(currentPage, selectedPages.length);
+        }
+    };
+
+    // Track progress by monitoring response chunks and server logs
+    let lastResponseLength = 0;
+    let currentPageProgress = 1;
+    let lastProgressUpdate = 0;
+    
+    xhr.onprogress = function() {
+        if (xhr.responseText && xhr.responseText.length > lastResponseLength) {
+            lastResponseLength = xhr.responseText.length;
+            
+            // Check for page completion indicators in response
+            const responseText = xhr.responseText;
+            
+            // Look for page completion patterns in the response
+            if (responseText.includes('PAGE') && responseText.includes('COMPLETED')) {
+                // Extract page number from response
+                const pageMatch = responseText.match(/PAGE (\d+) COMPLETED/);
+                if (pageMatch) {
+                    const completedPage = parseInt(pageMatch[1]);
+                    if (completedPage > currentPageProgress) {
+                        currentPageProgress = completedPage;
+                        // Mark page as completed
+                        updateTranslationProgress(currentPageProgress, selectedPages.length, true);
+                        // Start timing next page
+                        lastPageStartTime = Date.now();
+                        console.log(`Page ${completedPage} completed, progress updated`);
+                    }
+                }
+            }
+            
+            // Update progress based on response size (fallback method)
+            const now = Date.now();
+            if (now - lastProgressUpdate > 1000) { // Update every second
+                const estimatedProgress = Math.min(Math.floor((lastResponseLength / 8000) + 1), selectedPages.length);
+                if (estimatedProgress > currentPageProgress) {
+                    currentPageProgress = estimatedProgress;
+                    updateTranslationProgress(currentPageProgress, selectedPages.length);
+                    lastProgressUpdate = now;
+                }
+            }
+        }
+    };
+
     // Handle translation completion
     xhr.onload = function() {
+        // Clear progress interval
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+        
+        // Reset button to translate
         translateBtn.classList.remove('loading');
+        translateBtn.textContent = 'Translate Selected Pages';
+        translateBtn.onclick = translateFileContent;
 
         // Calculate translation time
         const endTime = performance.now();
@@ -1146,6 +1406,9 @@ function translateFileContent() {
                 console.log('Translation response:', data);
 
                 if (data && data.success) {
+                    // Mark all pages as completed
+                    updateTranslationProgress(selectedPages.length, selectedPages.length, true);
+                    
                     translatedPdfDownloadUrl = data.download_url; // Match test_upload.html exactly
                     console.log('Translation successful:', {
                         downloadUrl: translatedPdfDownloadUrl,
@@ -1165,14 +1428,18 @@ function translateFileContent() {
 
                     showDownloadSection(targetLanguage, 'Google Gemini 2.5 Flash', translationTime, translatedPages);
                     showNotification(`Successfully translated ${translatedPages} pages using Google Gemini 2.5 Flash in ${translationTime}s!`, 'success');
+
+                    // Keep progress bar visible (don't hide)
                 } else if (data) {
                     console.error('Translation failed with response:', data);
                     showNotification(`Translation failed: ${data.error}`, 'error');
+                    hideTranslationProgress();
                 } else {
                     console.error('Translation failed with empty response');
                     showNotification('Translation failed: Empty response from server', 'error');
+                    hideTranslationProgress();
                 }
-            } catch (error) {
+                } catch (error) {
                 console.error('JSON parsing error:', error);
                 console.error('Response text:', xhr.responseText);
                 showNotification(`Translation failed: Invalid response format - ${xhr.responseText}`, 'error');
@@ -1186,7 +1453,15 @@ function translateFileContent() {
 
     // Handle translation errors
     xhr.onerror = function() {
+        // Clear progress interval
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+        
+        // Reset button to translate
         translateBtn.classList.remove('loading');
+        translateBtn.textContent = 'Translate Selected Pages';
+        translateBtn.onclick = translateFileContent;
         console.error('Network error during translation');
         showNotification('Translation failed: Network error', 'error');
     };
@@ -1194,7 +1469,15 @@ function translateFileContent() {
     // Handle timeout
     xhr.timeout = 300000; // 5 minutes timeout
     xhr.ontimeout = function() {
+        // Clear progress interval
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+        
+        // Reset button to translate
         translateBtn.classList.remove('loading');
+        translateBtn.textContent = 'Translate Selected Pages';
+        translateBtn.onclick = translateFileContent;
         console.error('Translation timeout');
         showNotification('Translation failed: Timeout - translation taking too long', 'error');
     };
@@ -1238,34 +1521,21 @@ function showDownloadSection(targetLanguage, service, time, translatedPages) {
     });
 
     const downloadSection = document.getElementById('downloadSection');
-    const downloadMessage = document.getElementById('downloadMessage');
 
     console.log('Download section elements:', {
-        downloadSection: downloadSection ? 'found' : 'not found',
-        downloadMessage: downloadMessage ? 'found' : 'not found'
+        downloadSection: downloadSection ? 'found' : 'not found'
     });
 
-    if (downloadSection && downloadMessage) {
-        // Update the success message with translation details
-        const message = `Successfully translated ${translatedPages} pages to ${targetLanguage} using ${service} in ${time}s`;
-        downloadMessage.textContent = message;
-        console.log('Updated download message:', message);
-
+    if (downloadSection) {
         // Show the download section with smooth animation
-        downloadSection.style.display = 'block';
+        downloadSection.classList.add('show');
         console.log('Download section shown');
 
         // Scroll into view
         downloadSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         console.log('Scrolled to download section');
-                } else {
-        console.error('Download section elements not found!');
-        if (!downloadSection) {
-            console.error('downloadSection element is missing');
-        }
-        if (!downloadMessage) {
-            console.error('downloadMessage element is missing');
-        }
+    } else {
+        console.error('Download section element not found!');
     }
 }
 
@@ -1273,7 +1543,7 @@ function showDownloadSection(targetLanguage, service, time, translatedPages) {
 function hideDownloadSection() {
     const downloadSection = document.getElementById('downloadSection');
     if (downloadSection) {
-        downloadSection.style.display = 'none';
+        downloadSection.classList.remove('show');
     }
 }
 

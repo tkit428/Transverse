@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@primer/css@latest/dist/primer.css">
 </head>
 <body>
@@ -157,7 +158,12 @@
                 <!-- Left Panel: Page Previews -->
                 <div class="left-panel">
                     <div class="panel-header">
-                        <h3 class="panel-title">📄 File Pages</h3>
+                        <h3 class="panel-title">
+                            <svg class="octicon octicon-file" width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M3.75 1.5a.25.25 0 0 0-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V6H9.75A1.75 1.75 0 0 1 8 4.25V1.5H3.75Zm5.75.56v2.19c0 .138.112.25.25.25h2.19L9.5 2.06ZM2 1.75C2 .784 2.784 0 3.75 0h5.086c.464 0 .909.184 1.237.513l3.414 3.414c.329.328.513.773.513 1.237v8.086A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-8.5a.25.25 0 0 0-.25-.25Z"/>
+                            </svg>
+                            File Pages
+                        </h3>
                         <div class="page-controls">
                             <button class="page-control-btn" id="selectAllPages">Select All</button>
                             <button class="page-control-btn" id="deselectAllPages">Deselect All</button>
@@ -183,7 +189,12 @@
                 <!-- Right Panel: Translation Controls -->
                 <div class="right-panel">
                     <div class="translation-settings">
-                        <h3 class="panel-title">🌍 Translation Settings</h3>
+                        <h3 class="panel-title">
+                            <svg class="octicon octicon-globe" width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/>
+                            </svg>
+                            Translation Settings
+                        </h3>
 
                         <div class="setting-group">
                             <label for="fileTargetLanguage">Target Language:</label>
@@ -197,21 +208,53 @@
                                 <option value="ru">Russian</option>
                                 <option value="ja">Japanese</option>
                                 <option value="ko">Korean</option>
-                                <option value="zh-Hans">Simplified Chinese</option>
                                 <option value="zh-Hant">Traditional Chinese</option>
+                                <option value="zh-Hans">Simplified Chinese</option>
                                 <option value="ar">Arabic</option>
                                 <option value="hi">Hindi</option>
                             </select>
                         </div>
 
                         <div class="setting-group">
-                            <span class="service-info">Using Google Gemini 2.5 Flash API</span>
+                            <span class="service-info">Using Google Gemini 2.5 Flash Lite API</span>
                         </div>
 
                         <div class="time-estimate">
                             <div class="estimate-label">Estimated Time:</div>
                             <div class="estimate-value" id="timeEstimate">--</div>
                             <small class="estimate-note">About 4-5 seconds per page</small>
+                        </div>
+
+                        <!-- Translation Progress Bar -->
+                        <div class="translation-progress" id="translationProgress" style="display: none;">
+                            <div class="progress-header">
+                                <h4>Translation Progress</h4>
+                                <div class="progress-stats">
+                                    <span id="currentPageInfo">Page 0 of 0</span>
+                                    <span id="lastPageTime">--</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="translationProgressBar"></div>
+                            </div>
+                            <div class="progress-details">
+                                <div class="progress-item">
+                                    <span class="progress-label">Current Page:</span>
+                                    <span class="progress-value" id="currentPageNumber">--</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Pages Completed:</span>
+                                    <span class="progress-value" id="pagesCompleted">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Last Page Time:</span>
+                                    <span class="progress-value" id="lastPageDuration">--</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Total Time:</span>
+                                    <span class="progress-value" id="totalTranslationTime">--</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="translate-section">
@@ -221,28 +264,15 @@
                             </button>
                         </div>
 
-                        <!-- Download Section (Hidden by default) -->
-                        <div class="download-section" id="downloadSection" style="display: none;">
-                            <div class="download-success">
-                                <div class="success-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                                    </svg>
-                                </div>
-                                <div class="success-message">
-                                    <h3>Translation Complete!</h3>
-                                    <p id="downloadMessage">Successfully translated using Google Gemini 2.5 Flash</p>
-                                </div>
-                            </div>
-                            <div class="download-actions">
-                                <button class="download-btn" onclick="downloadTranslatedFile()">
-                                    <svg class="download-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/>
-                                        <path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/>
-                                    </svg>
-                                    Download Translated File
-                                </button>
-                            </div>
+                        <!-- Download Button (Hidden by default) -->
+                        <div class="download-section" id="downloadSection">
+                            <button class="download-btn" onclick="downloadTranslatedFile()">
+                                <svg class="octicon octicon-download" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/>
+                                    <path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/>
+                                </svg>
+                                Download Translated File
+                            </button>
                         </div>
                     </div>
                 </div>

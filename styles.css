@@ -1372,10 +1372,11 @@ body {
     opacity: 0.8;
 }
 
-/* Disable page scrolling */
+/* Enable page scrolling for main pages */
 html, body {
-    overflow: hidden;
-    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: auto;
 }
 
 /* Service info styling */
@@ -1442,6 +1443,11 @@ html, body {
     transition: opacity 0.3s ease;
 }
 
+/* Disable page scroll when file translation is active */
+body.file-translation-active {
+    overflow: hidden;
+}
+
 .file-translation-results.active {
     opacity: 1;
 }
@@ -1465,7 +1471,7 @@ html, body {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    min-width: 350px;
+    min-width: 400px;
 }
 
 .panel-header {
@@ -1578,12 +1584,13 @@ html, body {
 /* Page Preview Icons Grid */
 .pages-preview-container {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 1rem;
     padding: 1rem 0;
     max-height: 400px;
     overflow-y: auto;
     justify-items: center;
+    align-items: start;
 }
 
 @media (max-width: 768px) {
@@ -1601,8 +1608,8 @@ html, body {
 /* Page Icon Styles */
 .page-icon {
     position: relative;
-    width: 70px;
-    height: 70px;
+    width: 120px;
+    height: 160px;
     border: 2px solid #e1e5e9;
     border-radius: 12px;
     background: #f8f9fa;
@@ -1613,6 +1620,8 @@ html, body {
     align-items: center;
     justify-content: center;
     font-family: 'Anonymous Pro', monospace;
+    overflow: hidden;
+    margin: 0 auto;
 }
 
 .page-icon:hover {
@@ -1641,38 +1650,30 @@ html, body {
 
 .page-icon-image,
 .page-icon-document {
-    font-size: 1.5rem;
-    opacity: 0.8;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto;
 }
 
 .page-number {
-    font-size: 0.8rem;
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.9rem;
     font-weight: 600;
     text-align: center;
-}
-
-.page-checkmark {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 20px;
-    height: 20px;
-    background: #4CAF50;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: bold;
+    background: rgba(0, 0, 0, 0.7);
     color: white;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    padding: 4px 8px;
+    border-radius: 12px;
+    min-width: 30px;
 }
 
-.page-icon.selected .page-checkmark,
-.page-checkmark.visible {
-    opacity: 1;
-}
+
 
 .page-preview-image {
     width: 40px;
@@ -1766,10 +1767,96 @@ html, body {
     font-size: 1.2rem;
 }
 
+/* Translation Progress Bar */
+.translation-progress {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    border: 1px solid #dee2e6;
+    animation: slideIn 0.3s ease-out;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.progress-header h4 {
+    margin: 0;
+    font-family: 'Doto', sans-serif;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.progress-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.progress-stats span {
+    font-family: 'Anonymous Pro', monospace;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progress-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.progress-label {
+    font-family: 'Anonymous Pro', monospace;
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.progress-value {
+    font-family: 'Anonymous Pro', monospace;
+    font-size: 0.9rem;
+    color: #333;
+    font-weight: 600;
+}
+
 /* Download Section in File Translation Page */
 .download-section {
     margin-top: 1.5rem;
+    display: none;
+    justify-content: center;
     animation: slideInUp 0.3s ease-out;
+}
+
+.download-section.show {
+    display: flex;
 }
 
 @keyframes slideInUp {
@@ -1783,30 +1870,6 @@ html, body {
     }
 }
 
-.success-message h3 {
-    margin: 0 0 0.5rem 0;
-    font-family: 'Doto', monospace;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: white;
-}
-
-.success-message p {
-    margin: 0;
-    font-family: 'Anonymous Pro', monospace;
-    font-size: 0.9rem;
-    color: white;
-    opacity: 0.9;
-}
-
-.success-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-}
-
 .service-info {
     font-family: 'Anonymous Pro', monospace;
     font-size: 0.9rem;
@@ -1818,14 +1881,13 @@ html, body {
 
 /* Right Panel */
 .right-panel {
-    flex: 1;
+    flex: 0 0 400px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 14px;
     padding: 1.5rem;
     border: 1px solid #eee;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    min-width: 350px;
     display: flex;
     flex-direction: column;
 }
