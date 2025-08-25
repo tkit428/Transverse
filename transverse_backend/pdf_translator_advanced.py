@@ -8,6 +8,16 @@ import fitz  # PyMuPDF
 from pathlib import Path
 import uuid
 import html
+import time
+import logging
+
+# Set up logging for debug output
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[PDF_TRANSLATOR] %(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger('pdf_translator')
 
 class AdvancedPdfTranslator:
     
@@ -21,69 +31,146 @@ class AdvancedPdfTranslator:
         This method follows PyMuPDF best practices.
         """
         try:
+            logger.info("=== STARTING PDF TRANSLATION ===")
+            logger.info(f"📁 Input file: {Path(file_path).name}")
+            logger.info(f"🌐 Target language: {target_language}")
+            logger.info(f"🔧 Translation service: {getattr(translation_service, 'service_name', 'Unknown')}")
+
             # Open original document
             doc = fitz.open(file_path)
-            
+            total_pages = len(doc)
+            logger.info(f"📄 Total pages in document: {total_pages}")
+
             if page_numbers is None:
                 page_numbers = list(range(1, len(doc) + 1))
-            
+                logger.info(f"📄 Processing all pages: {page_numbers}")
+            else:
+                logger.info(f"📄 Processing selected pages: {page_numbers}")
+
             # Process each specified page
             for page_idx in page_numbers:
                 if page_idx < 1 or page_idx > len(doc):
+                    logger.warning(f"⚠️ Skipping invalid page {page_idx} (out of range 1-{len(doc)})")
                     continue
-                    
+
+                logger.info(f"📄 STARTING PAGE {page_idx}")
+                page_start_time = time.time()
+
                 page = doc[page_idx - 1]  # Convert to 0-based
-                
+                page_size = f"{page.rect.width:.1f}x{page.rect.height:.1f}"
+                logger.info(f"📄 Page {page_idx} dimensions: {page_size}")
+
                 # Extract text with detailed formatting information
+                logger.info(f"📄 Page {page_idx}: Extracting text blocks...")
                 text_dict = page.get_text("dict")
-                
+                total_blocks = len(text_dict.get("blocks", []))
+                logger.info(f"📄 Page {page_idx}: Found {total_blocks} blocks in document")
+
                 # Collect text blocks for translation
                 translation_blocks = []
-                
+
                 for block in text_dict.get("blocks", []):
                     if "lines" in block:  # Text block
                         block_info = self._extract_block_info(block)
                         if block_info and block_info['text'].strip():
                             translation_blocks.append(block_info)
-                
-                # Translate all text blocks
-                for block_info in translation_blocks:
+
+                logger.info(f"📄 Page {page_idx}: Found {len(translation_blocks)} text blocks to translate")
+
+                # Batch translate all text blocks in one API call
+                logger.info(f"📄 Page {page_idx}: Batch translating {len(translation_blocks)} blocks in one request...")
+
+                if translation_blocks:
                     try:
-                        # Translate the text
-                        translated_text = translation_service.translate(
-                            block_info['text'], 
+                        # Combine all text blocks with markers to identify them
+                        combined_text = ""
+                        block_markers = []
+
+                        for block_idx, block_info in enumerate(translation_blocks, 1):
+                            block_marker = f"__BLOCK_{block_idx}__"
+                            combined_text += f"{block_marker}\n{block_info['text']}\n\n"
+                            block_markers.append(block_marker)
+
+                        logger.info(f"📄 Page {page_idx}: Combined text length: {len(combined_text)} characters")
+
+                        # Make single API call for entire page
+                        page_translate_start = time.time()
+                        translated_combined = translation_service.translate(
+                            combined_text,
                             target_language
                         )
-                        
-                        if not translated_text or translated_text.strip() == "":
-                            translated_text = block_info['text']  # Fallback
-                        
-                        # Use redaction to remove original text
+                        translate_time = time.time() - page_translate_start
+
+                        if not translated_combined or translated_combined.strip() == "":
+                            logger.warning(f"📄 Page {page_idx}: Empty translation received, using original texts")
+                            # Use original texts as fallback
+                            for block_info in translation_blocks:
+                                block_info['translated_text'] = block_info['text']
+                        else:
+                            logger.info(f"📄 Page {page_idx}: Batch translation completed ({len(translated_combined)} chars) in {translate_time:.2f}s")
+
+                            # Split the translated text back using markers
+                            translated_blocks = self._split_translated_text(translated_combined, block_markers)
+
+                            # Assign translated text to each block
+                            for i, block_info in enumerate(translation_blocks):
+                                if i < len(translated_blocks) and translated_blocks[i].strip():
+                                    block_info['translated_text'] = translated_blocks[i].strip()
+                                    logger.debug(f"📄 Page {page_idx}, Block {i+1}: Assigned translated text ({len(block_info['translated_text'])} chars)")
+                                else:
+                                    logger.warning(f"📄 Page {page_idx}, Block {i+1}: No translated text found, using original")
+                                    block_info['translated_text'] = block_info['text']
+
+                    except Exception as e:
+                        logger.error(f"📄 Page {page_idx}: Batch translation error: {str(e)}")
+                        # Fallback to original texts
+                        for block_info in translation_blocks:
+                            block_info['translated_text'] = block_info['text']
+
+                # Add redaction annotations for all blocks
+                logger.info(f"📄 Page {page_idx}: Adding {len(translation_blocks)} redaction annotations...")
+                for block_idx, block_info in enumerate(translation_blocks, 1):
+                    try:
                         page.add_redact_annot(
-                            block_info['bbox'], 
+                            block_info['bbox'],
                             text="",  # Remove text
                             fill=(1, 1, 1)  # White fill
                         )
-                        
-                        # Store translation info for later insertion
-                        block_info['translated_text'] = translated_text
-                        
+                        logger.debug(f"📄 Page {page_idx}, Block {block_idx}: Redaction annotation added")
                     except Exception as e:
-                        print(f"Translation error for block: {e}")
-                        block_info['translated_text'] = block_info['text']
-                
+                        logger.error(f"📄 Page {page_idx}, Block {block_idx}: Error adding redaction: {str(e)}")
+
                 # Apply all redactions
+                logger.info(f"📄 Page {page_idx}: Applying {len(translation_blocks)} redaction annotations...")
                 page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
-                
+                logger.info(f"📄 Page {page_idx}: Redactions applied successfully")
+
                 # Insert translated text using HTML for better Unicode support
-                for block_info in translation_blocks:
+                logger.info(f"📄 Page {page_idx}: Inserting {len(translation_blocks)} translated text blocks...")
+                successful_insertions = 0
+                for block_idx, block_info in enumerate(translation_blocks, 1):
                     if 'translated_text' in block_info:
-                        self._insert_translated_text(page, block_info)
-            
+                        try:
+                            success = self._insert_translated_text(page, block_info)
+                            if success:
+                                successful_insertions += 1
+                                logger.debug(f"📄 Page {page_idx}, Block {block_idx}: Text insertion successful")
+                            else:
+                                logger.warning(f"📄 Page {page_idx}, Block {block_idx}: Text insertion failed")
+                        except Exception as e:
+                            logger.error(f"📄 Page {page_idx}, Block {block_idx}: Text insertion error: {str(e)}")
+
+                logger.info(f"📄 Page {page_idx}: Text insertion completed ({successful_insertions}/{len(translation_blocks)} successful)")
+
+                # Calculate page processing time
+                page_time = time.time() - page_start_time
+                logger.info(f"📄 PAGE {page_idx} COMPLETED in {page_time:.2f}s")
+
             # Save the translated document
+            logger.info("💾 Saving translated document...")
             output_filename = f"translated_{uuid.uuid4().hex[:8]}.pdf"
             output_path = self.temp_dir / output_filename
-            
+
             # Save with optimal settings
             doc.save(
                 str(output_path),
@@ -93,15 +180,20 @@ class AdvancedPdfTranslator:
                 ascii=False  # Allow Unicode
             )
             doc.close()
-            
+
+            logger.info("✅ PDF TRANSLATION COMPLETED SUCCESSFULLY")
+            logger.info(f"📄 Total pages processed: {len(page_numbers)}")
+            logger.info(f"💾 Output file: {output_filename}")
+
             return {
                 'success': True,
                 'output_path': str(output_path),
                 'filename': output_filename,
                 'translated_pages': len(page_numbers)
             }
-            
+
         except Exception as e:
+            logger.error(f"❌ PDF TRANSLATION FAILED: {str(e)}")
             return {'success': False, 'error': f'Advanced PDF translation error: {str(e)}'}
     
     def _extract_block_info(self, block):
@@ -153,29 +245,63 @@ class AdvancedPdfTranslator:
             'is_italic': bool(avg_flags & 2**6)
         }
     
+    def _split_translated_text(self, translated_text, block_markers):
+        """Split translated text back into individual blocks using markers."""
+        translated_blocks = []
+        current_text = translated_text
+
+        for marker in block_markers:
+            if marker in current_text:
+                # Split at the marker
+                parts = current_text.split(marker, 1)
+                if len(parts) > 1:
+                    # Everything before the marker is the previous block's text
+                    if parts[0].strip():
+                        translated_blocks.append(parts[0].strip())
+                    # Continue with the rest
+                    current_text = parts[1]
+                else:
+                    # Marker not found, add empty text
+                    translated_blocks.append("")
+            else:
+                # Marker not found, add empty text
+                translated_blocks.append("")
+
+        # Add any remaining text after the last marker
+        if current_text.strip():
+            translated_blocks.append(current_text.strip())
+
+        logger.debug(f"Split {len(translated_blocks)} blocks from translated text")
+        return translated_blocks
+
     def _insert_translated_text(self, page, block_info):
         """Insert translated text with proper formatting."""
         translated_text = block_info['translated_text']
         bbox = block_info['bbox']
-        
+
         # Create HTML content for better Unicode support
         html_content = self._create_html_for_text(block_info)
-        
+
         try:
             # Try HTML insertion first (best for Unicode)
+            logger.debug(f"Attempting HTML insertion for text ({len(translated_text)} chars)")
             result = page.insert_htmlbox(bbox, html_content)
-            
+
             if result[0] >= 0:  # Success
+                logger.debug("HTML insertion successful")
                 return True
-                
+            else:
+                logger.debug(f"HTML insertion failed with result: {result}")
+
         except Exception as e:
-            print(f"HTML insertion failed: {e}")
-        
+            logger.debug(f"HTML insertion failed: {e}")
+
         # Fallback to textbox with appropriate font
         try:
             fontname = self._get_font_for_language(block_info)
             color = self._convert_color(block_info['color'])
-            
+
+            logger.debug(f"Attempting textbox insertion with font: {fontname}")
             result = page.insert_textbox(
                 bbox,
                 translated_text,
@@ -184,16 +310,18 @@ class AdvancedPdfTranslator:
                 color=color,
                 align=0
             )
-            
+
             if result >= 0:
+                logger.debug("Textbox insertion successful")
                 return True
-                
+
             # Try with smaller font sizes
             for scale in [0.8, 0.6, 0.4]:
                 smaller_size = block_info['font_size'] * scale
                 if smaller_size < 6:
                     break
-                    
+
+                logger.debug(f"Retrying with smaller font size: {smaller_size}")
                 result = page.insert_textbox(
                     bbox,
                     translated_text,
@@ -202,23 +330,27 @@ class AdvancedPdfTranslator:
                     color=color,
                     align=0
                 )
-                
+
                 if result >= 0:
+                    logger.debug(f"Textbox insertion successful with font size {smaller_size}")
                     return True
-                    
+
         except Exception as e:
-            print(f"Textbox insertion failed: {e}")
-        
+            logger.debug(f"Textbox insertion failed: {e}")
+
         # Ultimate fallback
         try:
+            logger.debug("Attempting ultimate fallback text insertion")
             page.insert_text(
                 bbox.tl,
                 translated_text,
                 fontsize=12,
                 color=(0, 0, 0)
             )
+            logger.debug("Ultimate fallback successful")
             return True
-        except:
+        except Exception as e:
+            logger.debug(f"Ultimate fallback failed: {e}")
             return False
     
     def _create_html_for_text(self, block_info):

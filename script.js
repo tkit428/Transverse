@@ -959,8 +959,8 @@ function parsePageInput(event) {
     const input = event.target.value.trim();
     if (!input) {
         deselectAllPages();
-        return;
-    }
+                    return;
+                }
 
     const newSelectedPages = [];
     const parts = input.split(',');
@@ -1008,7 +1008,7 @@ function updateSelectedPagesInfo() {
             infoElement.textContent = 'No pages selected';
         } else if (selectedPages.length === 1) {
             infoElement.textContent = '1 page selected';
-        } else {
+            } else {
             infoElement.textContent = `${selectedPages.length} pages selected`;
         }
     }
@@ -1035,7 +1035,7 @@ function updateTimeEstimate(selectedPages) {
 
     if (totalSeconds < 60) {
         estimateElement.textContent = `${Math.round(totalSeconds)}s`;
-        } else {
+    } else {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = Math.round(totalSeconds % 60);
         estimateElement.textContent = `${minutes}m ${seconds}s`;
@@ -1156,6 +1156,13 @@ function translateFileContent() {
 
                     // Show download section below translate button
                     const translatedPages = data.translated_pages || selectedPages.length;
+                    console.log('About to call showDownloadSection with:', {
+                        targetLanguage,
+                        service: 'Google Gemini 2.5 Flash',
+                        translationTime,
+                        translatedPages
+                    });
+
                     showDownloadSection(targetLanguage, 'Google Gemini 2.5 Flash', translationTime, translatedPages);
                     showNotification(`Successfully translated ${translatedPages} pages using Google Gemini 2.5 Flash in ${translationTime}s!`, 'success');
                 } else if (data) {
@@ -1222,16 +1229,43 @@ function getSelectedPagesText() {
 
 // Show download section below translate button
 function showDownloadSection(targetLanguage, service, time, translatedPages) {
+    console.log('showDownloadSection called with:', {
+        targetLanguage,
+        service,
+        time,
+        translatedPages,
+        downloadUrl: translatedPdfDownloadUrl
+    });
+
     const downloadSection = document.getElementById('downloadSection');
     const downloadMessage = document.getElementById('downloadMessage');
 
+    console.log('Download section elements:', {
+        downloadSection: downloadSection ? 'found' : 'not found',
+        downloadMessage: downloadMessage ? 'found' : 'not found'
+    });
+
     if (downloadSection && downloadMessage) {
         // Update the success message with translation details
-        downloadMessage.textContent = `Successfully translated ${translatedPages} pages to ${targetLanguage} using ${service} in ${time}s`;
+        const message = `Successfully translated ${translatedPages} pages to ${targetLanguage} using ${service} in ${time}s`;
+        downloadMessage.textContent = message;
+        console.log('Updated download message:', message);
 
         // Show the download section with smooth animation
         downloadSection.style.display = 'block';
+        console.log('Download section shown');
+
+        // Scroll into view
         downloadSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        console.log('Scrolled to download section');
+                } else {
+        console.error('Download section elements not found!');
+        if (!downloadSection) {
+            console.error('downloadSection element is missing');
+        }
+        if (!downloadMessage) {
+            console.error('downloadMessage element is missing');
+        }
     }
 }
 

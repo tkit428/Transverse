@@ -188,19 +188,22 @@ class FileExtractor:
     def translate_pdf_pages(self, file_path, page_numbers, target_language, translation_service):
         """Translate specific PDF pages and return a new PDF with translated text."""
         try:
+            print(f"[PDF_TRANSLATOR] Using advanced PDF translator for {Path(file_path).name}")
             # Use the advanced PDF translator for better results
             from .pdf_translator_advanced import advanced_pdf_translator
-            
+
             result = advanced_pdf_translator.translate_pdf_with_redaction(
                 file_path, page_numbers, target_language, translation_service
             )
-            
+
             return result
-            
+
         except ImportError:
+            print(f"[PDF_TRANSLATOR] Advanced translator not available, falling back to basic method")
             # Fallback to basic method if advanced translator is not available
             return self._translate_pdf_basic(file_path, page_numbers, target_language, translation_service)
         except Exception as e:
+            print(f"[PDF_TRANSLATOR] PDF translation error: {str(e)}")
             return {'success': False, 'error': f'PDF translation error: {str(e)}'}
     
     def _translate_pdf_basic(self, file_path, page_numbers, target_language, translation_service):
