@@ -807,6 +807,9 @@ function addServerTestButton() {
 // Add test button on page load
 document.addEventListener('DOMContentLoaded', addServerTestButton);
 
+// Global scroll prevention function
+let preventScrollFunction = null;
+
 // Show file translation results
 function showFileTranslationResults(data) {
     // Store the current file data globally
@@ -823,14 +826,48 @@ function showFileTranslationResults(data) {
 
     // Add event listeners for page controls
     setupPageControls();
+    
+    // Prevent any scroll events while on translation page
+    preventScrollFunction = function(e) {
+        if (document.body.classList.contains('file-translation-active')) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    };
+    
+    // Add scroll prevention to multiple events
+    document.addEventListener('wheel', preventScrollFunction, { passive: false });
+    document.addEventListener('touchmove', preventScrollFunction, { passive: false });
+    document.addEventListener('keydown', function(e) {
+        if (document.body.classList.contains('file-translation-active')) {
+            // Prevent arrow keys, space, page up/down from scrolling
+            if ([32, 33, 34, 35, 36, 37, 38, 39, 40].includes(e.keyCode)) {
+            e.preventDefault();
+                return false;
+            }
+        }
+    });
 
     // Show results screen
     const resultsScreen = document.getElementById('fileTranslationResults');
     resultsScreen.style.display = 'block';
+    
+    // Disable page scroll immediately and ensure it stays disabled
+    document.body.classList.add('file-translation-active');
+    
+    // Force scroll to top and prevent any scrolling
+    window.scrollTo(0, 0);
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    
     setTimeout(() => {
         resultsScreen.classList.add('active');
-        // Disable page scroll
-        document.body.classList.add('file-translation-active');
+        
+        // Double-check scroll is disabled
+        if (!document.body.classList.contains('file-translation-active')) {
+            document.body.classList.add('file-translation-active');
+        }
     }, 10);
 
     console.log('File translation page shown, original file available:', !!originalUploadedFile);
@@ -952,22 +989,7 @@ function updateTranslationProgress(currentPage, totalPages, isPageComplete = fal
     }
 }
 
-// Cancel translation
-function cancelTranslation() {
-    // Reset button to translate
-    const translateBtn = document.getElementById('translateFileBtn');
-    translateBtn.classList.remove('loading');
-    translateBtn.textContent = 'Translate Selected Pages';
-    translateBtn.onclick = translateFileContent;
-    
-    // Hide progress bar
-    hideTranslationProgress();
-    
-    // Show notification
-    showNotification('Translation cancelled', 'info');
-    
-    // Note: progressInterval will be cleared in xhr.onload/onerror/ontimeout
-}
+// No cancel functionality - button is disabled during translation
 
 // Start translation progress tracking
 function startTranslationProgress(totalPages) {
@@ -1236,10 +1258,25 @@ function hideFileTranslation() {
     resultsScreen.classList.remove('active');
     setTimeout(() => {
         resultsScreen.style.display = 'none';
-        // Re-enable page scroll
+        
+        // Re-enable page scroll completely
         document.body.classList.remove('file-translation-active');
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        
+        // Ensure scroll is restored
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
     }, 300);
 
+    // Remove scroll prevention event listeners
+    if (preventScrollFunction) {
+        document.removeEventListener('wheel', preventScrollFunction);
+        document.removeEventListener('touchmove', preventScrollFunction);
+        preventScrollFunction = null;
+    }
+    
     // Reset variables
     selectedPages = [];
     extractedTextContent = '';
@@ -1272,10 +1309,11 @@ function translateFileContent() {
     const translateBtn = document.getElementById('translateFileBtn');
     const targetLanguage = document.getElementById('fileTargetLanguage').value;
 
-    // Show loading state and change button to cancel
+    // Show loading state and disable button
     translateBtn.classList.add('loading');
-    translateBtn.textContent = 'Cancel Translation';
-    translateBtn.onclick = cancelTranslation;
+    translateBtn.disabled = true;
+    translateBtn.textContent = 'Translating...';
+    translateBtn.style.cursor = 'not-allowed';
 
     // Start timer
     const startTime = performance.now();
@@ -1393,8 +1431,9 @@ function translateFileContent() {
         
         // Reset button to translate
         translateBtn.classList.remove('loading');
+        translateBtn.disabled = false;
         translateBtn.textContent = 'Translate Selected Pages';
-        translateBtn.onclick = translateFileContent;
+        translateBtn.style.cursor = 'pointer';
 
         // Calculate translation time
         const endTime = performance.now();
@@ -1434,7 +1473,7 @@ function translateFileContent() {
                     console.error('Translation failed with response:', data);
                     showNotification(`Translation failed: ${data.error}`, 'error');
                     hideTranslationProgress();
-                } else {
+        } else {
                     console.error('Translation failed with empty response');
                     showNotification('Translation failed: Empty response from server', 'error');
                     hideTranslationProgress();
@@ -1460,8 +1499,9 @@ function translateFileContent() {
         
         // Reset button to translate
         translateBtn.classList.remove('loading');
+        translateBtn.disabled = false;
         translateBtn.textContent = 'Translate Selected Pages';
-        translateBtn.onclick = translateFileContent;
+        translateBtn.style.cursor = 'pointer';
         console.error('Network error during translation');
         showNotification('Translation failed: Network error', 'error');
     };
@@ -1476,8 +1516,9 @@ function translateFileContent() {
         
         // Reset button to translate
         translateBtn.classList.remove('loading');
+        translateBtn.disabled = false;
         translateBtn.textContent = 'Translate Selected Pages';
-        translateBtn.onclick = translateFileContent;
+        translateBtn.style.cursor = 'pointer';
         console.error('Translation timeout');
         showNotification('Translation failed: Timeout - translation taking too long', 'error');
     };
@@ -1534,7 +1575,7 @@ function showDownloadSection(targetLanguage, service, time, translatedPages) {
         // Scroll into view
         downloadSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         console.log('Scrolled to download section');
-    } else {
+        } else {
         console.error('Download section element not found!');
     }
 }
